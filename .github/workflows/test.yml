@@ -69,4 +69,4 @@ jobs:
             docker pull thechef2546/vue3-vite-app:latest
             docker stop vue3-app || true
             docker rm vue3-app || true
-            docker run -d -p 8080:80 --name vue3-app thechef2546/vue3-vite-app:latest
+            docker run -d -p 80:80 --name vue3-app thechef2546/vue3-vite-app:latest

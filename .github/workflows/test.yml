@@ -1,102 +1,72 @@
-name: Test
+name: Deploy Vue3 Vite App
 
 on:
   push:
-    paths-ignore:
-      - '**.md'
-
-env:
-  CI: true
+    branches:
+      - master 
 
 jobs:
-  lint:
-    name: Lint
+  build:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
+      - name: Log in to Docker Hub
+        run: echo "0899853226Chef" | docker login -u "thechef2546" --password-stdin
 
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: pnpm
+      - name: Build Docker Image
+        run: |
+          docker build -t thechef2546/vue3-vite-app:latest .
+      
+      - name: Push Docker Image to Docker Hub
+        run: |
+          docker push thechef2546/vue3-vite-app:latest
 
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: TypeScript check
-        run: pnpm type-check
-
-      - name: Eslint check
-        run: pnpm lint
-
-  unit_test:
-    name: Unit test
+  deploy:
+    name: Deploy to AWS VM
     runs-on: ubuntu-latest
+    needs: build # ต้องรอ job `build` ทำเสร็จก่อน
+
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
         with:
-          version: 9
-          run_install: false
+          host: 54.163.195.191
+          username: ubuntu
+          key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIEowIBAAKCAQEA1l36P+rk7dyWAqypmoX1WGuOVCJG/bTZ4O5PBxck5UH+fXNA
+            PMik23DZELcoc8D9zEEhx6J0WKSOZRkD11PalNAMHuYM13pnInjU3x4sBUbj2q10
+            Q/tkFs8XKykhClOK80/ZbnH1ib50AzsdxmLadcVNBzLt2oUsbBODwdNwiHLaGOnf
+            ysP6fvFQ7o5JhvBZYTu9LYKcZLShCH0CDbJtfwedTg7tf1XdPUH+ECizsYiOE6a0
+            B6MdFUJwwrA8CxEf1CpW+g+eiBTHWjxLrsaU+d7HJoLIWDMxGzthMeURpo7tT71S
+            uaBMNF6PsA0Xpqw4BZbaPrNEpijJluVE+SsCSQIDAQABAoIBAQCSWfDLCIwpFKtZ
+            whW8yG4bYrr2F7zN41XI6goMNjHbTzX24eNeXEGpC582eUVl2cGsXF86k1/JUPdi
+            cDSeIsKdTHip87eauReGgmYaudel9qMDHd69tvi7VcFklxzWlvjLap1weN8AnoVH
+            22lVkxHAy+Xt30hiIv+T/bK7dqZikH7ndvDgXPJ1caj716GFrT5YUvBq/Uwcdmwb
+            ZBh+mMhsQbnkkGETvxJcNULm0pvS6E5P67kVhRI0emq6CA604DP0VP93A+uX8KbS
+            CzAwO6BXfrX9P2MVa0qrRPqhnweUOwLXdmfno6L0AtJiWMQZV7JKIXU6ch7XEPmq
+            l0U5q9wNAoGBAPI3CGZzmUyU6Xily2+WFqBQUxyqd6q+grLJA332QopyoOvm8StW
+            ZNp1sayNXJ8eiYifOfmnUFYRx5zTRFoT/42oVmaik2iaJmsKhLTx/EmHI5TWrdr0
+            uVa15wtXBDpxkLHDMQxkrPtJbYXOZFZ46HDgsFLuv44Z4onOgFOykijfAoGBAOKR
+            NpprvJvgqHVMW0KjUxmetGKGXOYpYzIfuvLOO9frdhPRWktuVmQCnkFo8zB1SgBM
+            YRiXhi0AyX+LmTdUzMI5O9luuVeUKIh6V77cQoe2dQTNgPeXW2QX8QnFm4FthM8j
+            ylcVljSmRco1//uohDI9y+X55c1koXg3kgYUaDHXAoGARsOzTZNaZ1heOaReojQ8
+            Wgv9rDNVkOnl72vw/D0VRbOltiYbsailAHpANYR7WfWnAuZaHsk2HF9HbVb/8j1D
+            fVSAIa4/2OCodr909BR6u9SinZp24rB68Y1leherIZQKTRUU4GUNcMEMIXqiL+1V
+            I51RhnlAN7jySYauUUWrlAsCgYB6J/8/vQzhInzRWYzu3e5lJtttL7KQ6gmwscjz
+            NtyvKyXrw3mip+fuXjcDX1mXa/WtOYE0aCYQx5bcrOC8I32OzpsFPZyyqpA8HXKH
+            1mwMjgSDxWVemP3OdtYgBao1W1467Logv+PPmUKRpxHQluhHymfQJC+R0Ur57URP
+            ANu42wKBgAHDPFxfAJhOmQOh4cK1oUMyYP+EwMrVmGwWm5XUALTmkg4AEJaWiETh
+            hbFTdnFnwhKcYAP7Ylqfsg8CqWh4FDVM0nEGjk0c9ZUtvwXjclU3D3L3IH/P+Kop
+            11Yqyc2eGVc0OC60IX4BBrP/LRxPH60AmptTpquPWbTDmK8/nMtU
+            -----END RSA PRIVATE KEY-----
 
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Unit test
-        run: pnpm test:unit
-
-      - name: Update coverage report
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  e2e_tests:
-    name: E2E test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
-
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Get cypress version
-        id: cypress-version
-        run: echo "version=$(pnpm info cypress version)" >> $GITHUB_OUTPUT
-
-      - name: Cache cypress binary
-        id: cache-cypress-binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-binary-${{ runner.os }}-${{ steps.cypress-version.outputs.version }}
-
-      - name: Install cypress binary
-        if: steps.cache-cypress-binary.outputs.cache-hit != 'true'
-        run: pnpm cypress install
-
-      - name: E2E test
-        run: pnpm test:e2e:ci
+          script: |
+            docker pull thechef2546/vue3-vite-app:latest
+            docker stop vue3-app || true
+            docker rm vue3-app || true
+            docker run -d -p 8080:80 --name vue3-app thechef2546/vue3-vite-app:latest
